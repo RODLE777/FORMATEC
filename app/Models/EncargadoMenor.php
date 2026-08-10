@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class EncargadoMenor extends Model
 {
-    protected $table = 'encargados_menor';  // 👈 Especifica el nombre correcto
+    public $timestamps = false;
+    protected $table = 'encargados_menor';  
 
     protected $fillable = [
         'estudiante_id',

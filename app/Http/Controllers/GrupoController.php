@@ -9,16 +9,12 @@ use Illuminate\Http\Request;
 
 class GrupoController extends Controller
 {
-    /**
-     * Lista de grupos con filtros y paginación.
-     */
     public function index(Request $request)
     {
         $user = $request->user();
 
         $query = Grupo::with(['curso', 'profesor'])->withCount('inscripciones');
 
-        // Profesor solo ve sus grupos
         if ($user->esProfesor() && $user->profesor) {
             $query->where('profesor_id', $user->profesor->id);
         }
@@ -36,24 +32,17 @@ class GrupoController extends Controller
         ]);
     }
 
-    /**
-     * Muestra el formulario de creación de un nuevo grupo.
-     * Se pasa un modelo Grupo vacío para evitar errores en el formulario.
-     */
+    // ahora pasa $grupo (vacío) a la vista de creación
     public function create()
     {
         $this->authorize('create', Grupo::class);
 
-        // 🔧 CORRECCIÓN: Se crea un modelo vacío y se fusiona con los catálogos
-        $grupo = new Grupo();
+        $grupo = new Grupo(); // modelo vacío
         $catalogos = $this->catalogos();
 
         return view('grupos.create', array_merge(['grupo' => $grupo], $catalogos));
     }
 
-    /**
-     * Almacena un nuevo grupo en la base de datos.
-     */
     public function store(Request $request)
     {
         $this->authorize('create', Grupo::class);
@@ -65,9 +54,6 @@ class GrupoController extends Controller
             ->with('status', 'Grupo creado correctamente.');
     }
 
-    /**
-     * Muestra los detalles de un grupo con sus relaciones.
-     */
     public function show(Grupo $grupo)
     {
         $this->authorize('view', $grupo);
@@ -82,9 +68,6 @@ class GrupoController extends Controller
         return view('grupos.show', compact('grupo'));
     }
 
-    /**
-     * Muestra el formulario de edición de un grupo.
-     */
     public function edit(Grupo $grupo)
     {
         $this->authorize('update', $grupo);
@@ -92,9 +75,6 @@ class GrupoController extends Controller
         return view('grupos.edit', array_merge(['grupo' => $grupo], $this->catalogos()));
     }
 
-    /**
-     * Actualiza un grupo existente.
-     */
     public function update(Request $request, Grupo $grupo)
     {
         $this->authorize('update', $grupo);
@@ -105,9 +85,6 @@ class GrupoController extends Controller
             ->with('status', 'Grupo actualizado correctamente.');
     }
 
-    /**
-     * Elimina un grupo (si no tiene inscripciones).
-     */
     public function destroy(Grupo $grupo)
     {
         $this->authorize('delete', $grupo);
@@ -122,9 +99,6 @@ class GrupoController extends Controller
             ->with('status', 'Grupo eliminado.');
     }
 
-    /**
-     * Retorna los catálogos necesarios para los formularios (cursos y profesores activos).
-     */
     private function catalogos(): array
     {
         return [
@@ -133,9 +107,6 @@ class GrupoController extends Controller
         ];
     }
 
-    /**
-     * Valida los datos del formulario de grupo.
-     */
     private function validated(Request $request, ?int $ignoreId = null): array
     {
         $uniqueRule = 'unique:grupos,codigo_grupo,' . ($ignoreId ?? 'NULL') . ',id,anio,' . $request->anio;
@@ -152,6 +123,7 @@ class GrupoController extends Controller
             'horario' => 'nullable|string|max:100',
             'lugar' => 'nullable|string|max:150',
             'numero_evaluaciones' => 'required|integer|min:1|max:20',
+            'cupo_maximo' => 'nullable|integer|min:1|max:200',
             'plataforma_certificacion' => 'nullable|string|max:50',
             'estado' => 'required|in:PLANIFICADO,EN_CURSO,FINALIZADO,CANCELADO',
         ]);

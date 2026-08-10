@@ -34,9 +34,7 @@ class GeografiaSeeder extends Seeder
             $municipio->distritos()->firstOrCreate(['nombre' => 'Casco urbano']);
         }
 
-        // Departamentos vecinos disponibles como catalogo minimo, por si
-        // llegan estudiantes de fuera de Cuscatlan (sin municipios/
-        // distritos precargados; se agregan bajo demanda).
+       
         foreach (['San Salvador', 'La Paz', 'San Vicente'] as $nombre) {
             Departamento::firstOrCreate(['nombre' => $nombre]);
         }

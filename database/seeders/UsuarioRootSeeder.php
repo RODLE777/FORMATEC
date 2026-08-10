@@ -6,14 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
-/**
- * Crea la primera cuenta ROOT para poder entrar al sistema. A partir de
- * aqui, ROOT crea el resto de cuentas desde el modulo Usuarios — no hay
- * registro publico (seccion 5 del prompt maestro).
- *
- * IMPORTANTE: cambia esta contrasena inmediatamente despues del primer
- * login, desde /password.
- */
+
 class UsuarioRootSeeder extends Seeder
 {
     public function run(): void

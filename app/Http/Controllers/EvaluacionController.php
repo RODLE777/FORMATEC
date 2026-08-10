@@ -14,6 +14,9 @@ use Illuminate\Http\Request;
  */
 class EvaluacionController extends Controller
 {
+
+protected $table = 'evaluaciones';
+
     public function editar(Grupo $grupo, Inscripcion $inscripcion)
     {
         $this->authorize('update', $grupo);
@@ -36,13 +39,17 @@ class EvaluacionController extends Controller
             'nombre_evaluacion.*' => 'nullable|string|max:100',
         ]);
 
+        $resultadoAntes = $inscripcion->resultado_final;
+
         foreach ($data['nota'] as $numero => $nota) {
             if ($nota === null || $nota === '') {
                 continue;
             }
 
             // El UPDATE/INSERT dispara el trigger que recalcula
-            // inscripciones.nota_final; no se toca esa columna desde aqui.
+            // inscripciones.nota_final y, si ya estan todas las
+            // evaluaciones, decide GRADUADO/REPROBADO automaticamente;
+            // no se toca esa columna desde aqui.
             $inscripcion->evaluaciones()->updateOrCreate(
                 ['numero_evaluacion' => $numero],
                 [
@@ -54,8 +61,28 @@ class EvaluacionController extends Controller
             );
         }
 
+        // El trigger pudo haber cambiado resultado_final en la base de
+        // datos; se avisa por correo solo si acaba de pasar a GRADUADO
+        // en esta misma peticion (evita reenviar el correo cada vez
+        // que se edita una nota de alguien que ya se habia graduado).
+        $inscripcion->refresh();
+        if ($resultadoAntes !== 'GRADUADO' && $inscripcion->resultado_final === 'GRADUADO') {
+            $this->notificarGraduacion($inscripcion);
+        }
+
         return redirect()
             ->route('grupos.show', ['grupo' => $grupo, 'tab' => 'estudiantes'])
             ->with('status', "Evaluaciones de {$inscripcion->estudiante->nombre_completo} guardadas correctamente.");
+    }
+
+    private function notificarGraduacion(Inscripcion $inscripcion): void
+    {
+        $inscripcion->loadMissing('estudiante', 'grupo.curso');
+        $correo = $inscripcion->estudiante->correo;
+
+        if ($correo) {
+            \Illuminate\Support\Facades\Notification::route('mail', $correo)
+                ->notify(new \App\Notifications\EstudianteGraduadoNotification($inscripcion));
+        }
     }
 }

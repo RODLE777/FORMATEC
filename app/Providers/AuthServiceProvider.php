@@ -17,7 +17,7 @@ class AuthServiceProvider extends ServiceProvider
         Gate::policy(Estudiante::class, EstudiantePolicy::class);
 
         // Gates simples para operaciones criticas exclusivas de ROOT
-        // (backups, restauracion, importacion masiva). Seccion 5.
+        // (backups, restauracion, importacion masiva).
         Gate::define('gestionar-backups', fn ($user) => $user->esRoot());
         Gate::define('importar-excel', fn ($user) => $user->esRoot());
         Gate::define('gestionar-usuarios', fn ($user) => $user->esRoot());

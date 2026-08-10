@@ -7,6 +7,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::unprepared(<<<'SQL'
             CREATE OR REPLACE VIEW vista_totalon_mensual AS
             SELECT
@@ -78,6 +83,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::unprepared('DROP VIEW IF EXISTS vista_porcentaje_asistencia');
         DB::unprepared('DROP VIEW IF EXISTS vista_estudiantes');
         DB::unprepared('DROP VIEW IF EXISTS vista_totalon_anual');

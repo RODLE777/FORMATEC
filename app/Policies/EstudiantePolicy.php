@@ -38,8 +38,13 @@ class EstudiantePolicy
         return $this->view($user, $estudiante);
     }
 
+    /**
+     * Eliminar un estudiante es irreversible (a diferencia de
+     * desactivarlo), asi que se restringe a ROOT unicamente, aunque
+     * ADMINISTRADOR pueda crear/editar estudiantes con normalidad.
+     */
     public function delete(User $user, Estudiante $estudiante): bool
     {
-        return $user->puedeGestionarOperacion();
+        return $user->esRoot();
     }
 }

@@ -42,9 +42,10 @@
                                 {{ $backup->estado }}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-right">
+                        <td class="px-4 py-3 text-right space-x-3">
                             @if ($backup->estado === 'COMPLETADO')
                                 <a href="{{ route('backups.download', $backup) }}" class="text-slate-600 hover:underline">Descargar</a>
+                                <a href="{{ route('backups.restore-form', $backup) }}" class="text-red-600 hover:underline">Restaurar</a>
                             @endif
                         </td>
                     </tr>
@@ -58,8 +59,7 @@
     <div class="mt-4">{{ $backups->links() }}</div>
 
     <p class="mt-4 text-xs text-slate-400">
-        La restauracion de un backup es una operacion delicada (sobrescribe la base de datos actual)
-        y se realiza manualmente por el equipo tecnico, no desde esta pantalla, para evitar perdidas
-        accidentales de informacion.
+        Restaurar sobrescribe TODA la base de datos actual con el contenido del backup elegido.
+        Antes de restaurar, el sistema genera automaticamente un backup de seguridad por si necesitas revertir.
     </p>
 </x-app-layout>

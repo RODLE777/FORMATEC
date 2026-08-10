@@ -50,4 +50,24 @@ class TotalonController extends Controller
 
         return $pdf->download("totalon-{$anio}.pdf");
     }
+
+    public function excel(Request $request)
+    {
+        $anio = $request->integer('anio') ?: now()->year;
+        $mensual = $request->get('periodo', 'anual') === 'mensual';
+        $vista = $mensual ? 'vista_totalon_mensual' : 'vista_totalon_anual';
+
+        $filas = DB::table($vista)->where('anio', $anio)->orderBy('curso')->get();
+
+        ReporteGenerado::create([
+            'usuario_id' => $request->user()->id,
+            'tipo_reporte' => 'TOTALON_EXCEL',
+            'parametros' => ['anio' => $anio, 'periodo' => $request->get('periodo', 'anual')],
+        ]);
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\TotalonExport($filas, $mensual),
+            "totalon-{$anio}.xlsx"
+        );
+    }
 }

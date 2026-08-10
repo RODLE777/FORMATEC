@@ -14,9 +14,5 @@
         </div>
     </div>
 
-    <div class="mt-8 rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-        <p class="text-sm text-slate-500">
-            Asistencia y notas de tus grupos se habilitan en la Fase 3 del proyecto.
-        </p>
-    </div>
+   
 </x-app-layout>

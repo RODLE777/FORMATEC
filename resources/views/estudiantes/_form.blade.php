@@ -32,6 +32,16 @@
         </div>
     </div>
 
+    <div>
+        <label class="block text-sm font-medium text-slate-700">Fotografia</label>
+        @if ($estudiante?->foto)
+            <img src="{{ $estudiante->foto_url }}" class="mt-2 h-20 w-20 rounded-lg object-cover border border-slate-200">
+        @endif
+        <input type="file" name="foto" accept="image/*"
+               class="mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm">
+        @error('foto') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+    </div>
+
     <div class="grid grid-cols-2 gap-4">
         <div>
             <label class="block text-sm font-medium text-slate-700">Sexo</label>
@@ -140,10 +150,10 @@
     </div>
 
     <label class="flex items-center gap-2 text-sm text-slate-700">
+        <input type="hidden" name="activo" value="0">
         <input type="checkbox" name="activo" value="1" {{ old('activo', $estudiante->activo ?? true) ? 'checked' : '' }}>
         Estudiante activo
     </label>
-
     {{-- Datos del encargado: solo obligatorio/visible si el estudiante es menor de edad --}}
     <div x-show="esMenor" x-cloak class="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
         <p class="text-sm font-semibold text-amber-800">Datos del encargado (obligatorio para menores de edad)</p>
@@ -171,6 +181,6 @@
     </div>
 
     <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-        {{ $estudiante->exists ? 'Guardar cambios' : 'Registrar estudiante' }}
+        {{ $estudiante ? 'Guardar cambios' : 'Registrar estudiante' }}
     </button>
 </div>

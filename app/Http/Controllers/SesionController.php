@@ -14,6 +14,7 @@ use Illuminate\Http\Request;
  */
 class SesionController extends Controller
 {
+    protected $table = 'sesiones';
     public function store(Request $request, Grupo $grupo)
     {
         $this->authorize('update', $grupo);

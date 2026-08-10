@@ -12,7 +12,7 @@ class Backup extends Model
 
     protected $fillable = ['usuario_id', 'nombre_archivo', 'ruta', 'tamano_bytes', 'tipo', 'estado'];
 
-    // 👇 Añade esto
+  
     protected $casts = [
         'created_at' => 'datetime',
     ];

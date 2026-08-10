@@ -12,3 +12,7 @@ Homestead.yaml
 npm-debug.log
 yarn-error.log
 /storage/app/backups
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/framework/cache/*
+/storage/logs/*

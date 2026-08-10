@@ -27,7 +27,7 @@
             @endcan
         </div>
 
-        {{-- Pestañas: todo lo que ocurre dentro del grupo vive aqui, no en menus separados --}}
+        
         <div class="mt-6 border-b border-slate-200">
             <nav class="-mb-px flex gap-6 text-sm">
                 @foreach ([
@@ -59,16 +59,23 @@
             </div>
         </div>
 
-        {{-- Estudiantes: inscribir y acceder a evaluaciones desde aqui --}}
-        <div x-show="tab === 'estudiantes'" class="mt-6">
+        {{-- Estudiantes: inscribir, editar estado, quitar y acceder a evaluaciones desde aqui --}}
+        <div x-show="tab === 'estudiantes'" x-data="{ mostrarTodos: false }" class="mt-6">
             @can('update', $grupo)
                 <a href="{{ route('inscripciones.create', ['grupo_id' => $grupo->id]) }}"
                    class="mb-3 inline-block rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
                     + Inscribir estudiante
                 </a>
+                @if ($grupo->cupo_maximo)
+                    <span class="ml-2 text-sm text-slate-500">
+                        Cupo: {{ $grupo->inscripciones->where('estado', 'ACTIVA')->count() }}/{{ $grupo->cupo_maximo }}
+                    </span>
+                @endif
             @endcan
 
-            <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+            {{-- overflow-visible (no overflow-hidden) a proposito: el
+            popover de "Editar estado" se sale del borde de la tabla. --}}
+            <div class="overflow-visible rounded-xl border border-slate-200 bg-white">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
                         <tr>
@@ -80,8 +87,8 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        @forelse ($grupo->inscripciones as $inscripcion)
-                            <tr>
+                        @forelse ($grupo->inscripciones as $index => $inscripcion)
+                            <tr x-show="mostrarTodos || {{ $index }} < 20">
                                 <td class="px-4 py-3 font-medium text-slate-900">
                                     <a href="{{ route('estudiantes.show', $inscripcion->estudiante) }}" class="hover:underline">
                                         {{ $inscripcion->estudiante->nombre_completo }}
@@ -91,17 +98,66 @@
                                 <td class="px-4 py-3 text-slate-600">{{ $inscripcion->resultado_final }}</td>
                                 {{-- nota_final: solo lectura, la calcula el trigger --}}
                                 <td class="px-4 py-3 font-mono text-slate-700">{{ $inscripcion->nota_final ?? '—' }}</td>
-                                <td class="px-4 py-3 text-right space-x-3">
+                                <td class="px-4 py-3 text-right space-x-3 relative" x-data="{ editando: false }">
                                     @can('update', $grupo)
                                         <a href="{{ route('grupos.evaluaciones.editar', [$grupo, $inscripcion]) }}" class="text-slate-600 hover:underline">
                                             Registrar notas
                                         </a>
+                                        <button type="button" @click="editando = !editando" class="text-slate-600 hover:underline">
+                                            Editar estado
+                                        </button>
                                     @endcan
                                     @if ($inscripcion->resultado_final === 'GRADUADO')
                                         <a href="{{ route('grupos.reportes.constancia-estudiante', [$grupo, $inscripcion]) }}" class="text-slate-600 hover:underline">
                                             Constancia
                                         </a>
                                     @endif
+                                    @can('update', $grupo)
+                                        <form method="POST" action="{{ route('inscripciones.destroy', $inscripcion) }}" class="inline"
+                                              onsubmit="return confirm('¿Quitar a este estudiante del grupo? Solo funciona si aun no tiene notas ni asistencia registrada.')">
+                                            @csrf @method('DELETE')
+                                            <button class="text-red-600 hover:underline">Quitar</button>
+                                        </form>
+                                    @endcan
+
+                                    {{-- Popover: corrige a mano el estado/resultado cuando el
+                                    trigger decidio mal o hay que revertir una deserción
+                                    automatica. Si se vuelve a poner EN_CURSO, el trigger
+                                    puede volver a decidir solo la proxima vez que se
+                                    guarden notas. --}}
+                                    <div x-show="editando" x-cloak @click.outside="editando = false"
+                                         class="absolute right-0 z-20 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-4 shadow-lg text-left">
+                                        <form method="POST" action="{{ route('inscripciones.estado', $inscripcion) }}" class="space-y-2">
+                                            @csrf @method('PUT')
+                                            <div>
+                                                <label class="block text-xs font-medium text-slate-500">Estado</label>
+                                                <select name="estado" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                                    @foreach (['ACTIVA','RETIRADA','FINALIZADA'] as $estado)
+                                                        <option value="{{ $estado }}" {{ $inscripcion->estado === $estado ? 'selected' : '' }}>{{ $estado }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-medium text-slate-500">Resultado</label>
+                                                <select name="resultado_final" class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                                    @foreach (['EN_CURSO','GRADUADO','DESERTADO','REPROBADO'] as $resultado)
+                                                        <option value="{{ $resultado }}" {{ $inscripcion->resultado_final === $resultado ? 'selected' : '' }}>{{ $resultado }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-medium text-slate-500">Observaciones (opcional)</label>
+                                                <input type="text" name="observaciones" value="{{ $inscripcion->observaciones }}"
+                                                       class="mt-1 w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+                                            </div>
+                                            <p class="text-[11px] text-slate-400">
+                                                Si lo vuelves a poner en "EN_CURSO", el sistema podra decidir el resultado solo otra vez cuando termines de registrar sus notas.
+                                            </p>
+                                            <button class="w-full rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-800">
+                                                Guardar
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -110,10 +166,15 @@
                     </tbody>
                 </table>
             </div>
+            @if ($grupo->inscripciones->count() > 20)
+                <button @click="mostrarTodos = !mostrarTodos" class="mt-2 text-sm text-slate-500 hover:underline">
+                    <span x-text="mostrarTodos ? 'Mostrar menos' : 'Mostrar los {{ $grupo->inscripciones->count() }} estudiantes'"></span>
+                </button>
+            @endif
         </div>
 
         {{-- Sesiones --}}
-        <div x-show="tab === 'sesiones'" class="mt-6">
+        <div x-show="tab === 'sesiones'" x-data="{ mostrarTodas: false }" class="mt-6">
             @can('update', $grupo)
                 <form method="POST" action="{{ route('grupos.sesiones.store', $grupo) }}" class="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-slate-100 bg-white p-4">
                     @csrf
@@ -146,8 +207,8 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
-                        @forelse ($grupo->sesiones as $sesion)
-                            <tr>
+                        @forelse ($grupo->sesiones as $index => $sesion)
+                            <tr x-show="mostrarTodas || {{ $index }} < 20">
                                 <td class="px-4 py-3">{{ $sesion->numero_sesion }}</td>
                                 <td class="px-4 py-3 text-slate-600">{{ $sesion->fecha->format('d/m/Y') }}</td>
                                 <td class="px-4 py-3 text-slate-600">{{ $sesion->tema ?? '—' }}</td>
@@ -163,6 +224,11 @@
                     </tbody>
                 </table>
             </div>
+            @if ($grupo->sesiones->count() > 20)
+                <button @click="mostrarTodas = !mostrarTodas" class="mt-2 text-sm text-slate-500 hover:underline">
+                    <span x-text="mostrarTodas ? 'Mostrar menos' : 'Mostrar las {{ $grupo->sesiones->count() }} sesiones'"></span>
+                </button>
+            @endif
         </div>
 
         {{-- Asistencia: resumen consolidado; el registro real ocurre en "pasar lista" por sesion --}}
@@ -208,8 +274,13 @@
         <div x-show="tab === 'reportes'" class="mt-6 grid gap-4 sm:grid-cols-2">
             <a href="{{ route('grupos.reportes.notas', $grupo) }}"
                class="rounded-xl bg-white p-5 border border-slate-100 shadow-sm hover:border-slate-300">
-                <p class="font-semibold text-slate-900">Acta de notas</p>
+                <p class="font-semibold text-slate-900">Acta de notas (PDF)</p>
                 <p class="text-sm text-slate-500 mt-1">PDF con las evaluaciones y nota final de cada estudiante del grupo.</p>
+            </a>
+            <a href="{{ route('grupos.reportes.notas-excel', $grupo) }}"
+               class="rounded-xl bg-white p-5 border border-slate-100 shadow-sm hover:border-slate-300">
+                <p class="font-semibold text-slate-900">Acta de notas (Excel)</p>
+                <p class="text-sm text-slate-500 mt-1">Mismo detalle en .xlsx, editable.</p>
             </a>
             <a href="{{ route('grupos.reportes.asistencia', $grupo) }}"
                class="rounded-xl bg-white p-5 border border-slate-100 shadow-sm hover:border-slate-300">

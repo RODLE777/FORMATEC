@@ -6,11 +6,6 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Uso en rutas: ->middleware('rol:ROOT') o ->middleware('rol:ROOT,ADMINISTRADOR')
- * Complementa las Policies: aqui se corta el acceso a nivel de ruta
- * completa; las Policies afinan el acceso a nivel de registro individual.
- */
 class EnsureRol
 {
     public function handle(Request $request, Closure $next, string ...$roles): Response
@@ -18,6 +13,11 @@ class EnsureRol
         $user = $request->user();
 
         if (! $user || ! in_array($user->rol, $roles, true)) {
+            // Si la petición viene de un fetch/JS, devolvemos JSON en lugar de HTML
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'No tienes permiso para acceder a esta sección.'], 403);
+            }
+            
             abort(403, 'No tienes permiso para acceder a esta seccion.');
         }
 

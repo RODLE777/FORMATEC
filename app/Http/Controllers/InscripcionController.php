@@ -40,6 +40,11 @@ class InscripcionController extends Controller
         $grupo = Grupo::findOrFail($data['grupo_id']);
         $this->authorize('update', $grupo);
 
+        $cuposDisponibles = $grupo->cuposDisponibles();
+        if ($cuposDisponibles !== null && $cuposDisponibles <= 0) {
+            return back()->withInput()->with('error', "El grupo ya alcanzo su cupo maximo ({$grupo->cupo_maximo} estudiantes).");
+        }
+
         Inscripcion::create([
             'estudiante_id' => $data['estudiante_id'],
             'grupo_id' => $data['grupo_id'],
@@ -62,8 +67,18 @@ class InscripcionController extends Controller
             'observaciones' => 'nullable|string',
         ]);
 
+        $resultadoAntes = $inscripcion->resultado_final;
+
         // Nunca incluir nota_final aqui: pertenece exclusivamente al trigger.
         $inscripcion->update($data);
+
+        if ($resultadoAntes !== 'GRADUADO' && $inscripcion->resultado_final === 'GRADUADO') {
+            $inscripcion->loadMissing('estudiante', 'grupo.curso');
+            if ($correo = $inscripcion->estudiante->correo) {
+                \Illuminate\Support\Facades\Notification::route('mail', $correo)
+                    ->notify(new \App\Notifications\EstudianteGraduadoNotification($inscripcion));
+            }
+        }
 
         return back()->with('status', 'Estado de inscripcion actualizado.');
     }

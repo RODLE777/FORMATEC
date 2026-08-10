@@ -1,13 +1,34 @@
 <x-app-layout title="Ficha del estudiante">
-    <div class="mb-4 flex items-center justify-between">
-        <div>
-            <h2 class="text-xl font-bold text-slate-900">{{ $estudiante->nombre_completo }}</h2>
-            <p class="text-sm text-slate-500 font-mono">{{ $estudiante->codigo_formatec }}</p>
+    <div class="mb-4 flex items-start justify-between">
+        <div class="flex items-center gap-4">
+            @if ($estudiante->foto)
+                <img src="{{ $estudiante->foto_url }}" class="h-16 w-16 rounded-full object-cover border border-slate-200">
+            @else
+                <div class="h-16 w-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-xl font-semibold">
+                    {{ strtoupper(substr($estudiante->nombres, 0, 1).substr($estudiante->apellidos, 0, 1)) }}
+                </div>
+            @endif
+            <div>
+                <h2 class="text-xl font-bold text-slate-900">{{ $estudiante->nombre_completo }}</h2>
+                <p class="text-sm text-slate-500 font-mono">{{ $estudiante->codigo_formatec }}</p>
+            </div>
         </div>
-        @can('update', $estudiante)
-            <a href="{{ route('estudiantes.edit', $estudiante) }}"
-               class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold hover:bg-slate-200">Editar ficha</a>
-        @endcan
+        <div class="flex gap-2">
+            @can('update', $estudiante)
+                <a href="{{ route('estudiantes.edit', $estudiante) }}"
+                   class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold hover:bg-slate-200">Editar ficha</a>
+            @endcan
+           
+            @can('delete', $estudiante)
+                <form method="POST" action="{{ route('estudiantes.destroy', $estudiante) }}"
+                      onsubmit="return confirm('¿Eliminar a {{ $estudiante->nombre_completo }} permanentemente? Esta accion no se puede deshacer. Solo funciona si el estudiante no tiene inscripciones registradas.')">
+                    @csrf @method('DELETE')
+                    <button class="rounded-lg bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">
+                        Eliminar
+                    </button>
+                </form>
+            @endcan
+        </div>
     </div>
 
     <div class="grid gap-6 lg:grid-cols-3">

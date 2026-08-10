@@ -2,18 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Imports\CursosImport;
 use App\Imports\EstudiantesImport;
+use App\Imports\HistoricoImport;
+use App\Imports\NotasImport;
 use App\Models\Importacion;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 
 /**
  * Importacion masiva desde Excel: exclusiva de ROOT (seccion 5 del
- * prompt maestro). No se importan notas ni cursos aqui todavia -solo
- * estudiantes-, dejando el patron listo para extender por tipo.
+ * prompt maestro). Soporta los 4 tipos definidos en el esquema.
  */
 class ImportacionController extends Controller
 {
+    private const IMPORTS = [
+        'ESTUDIANTES' => EstudiantesImport::class,
+        'CURSOS' => CursosImport::class,
+        'NOTAS' => NotasImport::class,
+        'HISTORICO' => HistoricoImport::class,
+    ];
+
     public function index()
     {
         $importaciones = Importacion::with('usuario')->latest('created_at')->paginate(15);
@@ -25,10 +34,11 @@ class ImportacionController extends Controller
     {
         $request->validate([
             'archivo' => 'required|file|mimes:xlsx,xls,csv|max:5120',
-            'tipo' => 'required|in:ESTUDIANTES',
+            'tipo' => 'required|in:ESTUDIANTES,CURSOS,NOTAS,HISTORICO',
         ]);
 
-        $import = new EstudiantesImport;
+        $importClass = self::IMPORTS[$request->tipo];
+        $import = new $importClass;
 
         try {
             Excel::import($import, $request->file('archivo'));

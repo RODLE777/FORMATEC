@@ -1,1 +1,0 @@
-<?php /**PATH C:\Users\UniRo\OneDrive\Escritorio\formatec-sistema-web\formatec\resources\views/departamentos/index.blade.php ENDPATH**/ ?>

@@ -2,7 +2,7 @@
     <div class="max-w-3xl rounded-xl bg-white p-6 shadow-sm border border-slate-100">
         <form method="POST" action="{{ route('grupos.store') }}" class="space-y-4">
             @csrf
-            @include('grupos._form')
+            @include('grupos._form', ['grupo' => $grupo]) 
         </form>
     </div>
 </x-app-layout>

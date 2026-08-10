@@ -54,6 +54,7 @@
 </div>
 
 <label class="flex items-center gap-2 text-sm text-slate-700">
+    <input type="hidden" name="activo" value="0">
     <input type="checkbox" name="activo" value="1" {{ old('activo', $profesor->activo ?? true) ? 'checked' : '' }}>
     Profesor activo
 </label>

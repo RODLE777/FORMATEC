@@ -24,9 +24,9 @@
 
 <div class="grid grid-cols-3 gap-4">
     <div>
-        <label class="block text-sm font-medium text-slate-700">Codigo de grupo</label>
+        <label class="block text-sm font-medium text-slate-700">Código de grupo</label>
         <input type="text" name="codigo_grupo" value="{{ old('codigo_grupo', $grupo->codigo_grupo ?? '') }}" required
-               placeholder="ej. EXCEL_G16" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+               placeholder="ej. EXCEL-G16" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
         @error('codigo_grupo') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
     </div>
     <div>
@@ -44,6 +44,7 @@
 <div class="grid grid-cols-2 gap-4">
     <div>
         <label class="block text-sm font-medium text-slate-700">Fecha de inicio</label>
+        
         <input type="date" name="fecha_inicio" value="{{ old('fecha_inicio', $grupo->fecha_inicio?->format('Y-m-d') ?? '') }}"
                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
     </div>
@@ -56,7 +57,7 @@
 
 <div class="grid grid-cols-3 gap-4">
     <div>
-        <label class="block text-sm font-medium text-slate-700">Duracion (horas)</label>
+        <label class="block text-sm font-medium text-slate-700">Duración (horas)</label>
         <input type="number" name="duracion_horas" value="{{ old('duracion_horas', $grupo->duracion_horas ?? '') }}"
                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
     </div>
@@ -74,14 +75,14 @@
 
 <div class="grid grid-cols-3 gap-4">
     <div>
-        <label class="block text-sm font-medium text-slate-700">Numero de evaluaciones</label>
+        <label class="block text-sm font-medium text-slate-700">Número de evaluaciones</label>
         <input type="number" min="1" max="20" name="numero_evaluaciones"
                value="{{ old('numero_evaluaciones', $grupo->numero_evaluaciones ?? 3) }}" required
                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-        <p class="mt-1 text-xs text-slate-400">Varia por curso: Excel=3, Ingles=5, etc.</p>
+        <p class="mt-1 text-xs text-slate-400">Varía por curso: Excel=3, Inglés=5, etc.</p>
     </div>
     <div>
-        <label class="block text-sm font-medium text-slate-700">Plataforma de certificacion</label>
+        <label class="block text-sm font-medium text-slate-700">Plataforma de certificación</label>
         <input type="text" name="plataforma_certificacion" value="{{ old('plataforma_certificacion', $grupo->plataforma_certificacion ?? '') }}"
                placeholder="ej. Certiport" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
     </div>
@@ -93,8 +94,14 @@
             @endforeach
         </select>
     </div>
+    <div>
+        <label class="block text-sm font-medium text-slate-700">Cupo máximo (vacío = sin límite)</label>
+        <input type="number" min="1" name="cupo_maximo" value="{{ old('cupo_maximo', $grupo->cupo_maximo ?? '') }}"
+               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+    </div>
 </div>
 
+
 <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-    {{ $grupo ? 'Guardar cambios' : 'Crear grupo' }}
+    {{ $grupo->exists ? 'Guardar cambios' : 'Crear grupo' }}
 </button>

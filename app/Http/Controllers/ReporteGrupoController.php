@@ -27,6 +27,20 @@ class ReporteGrupoController extends Controller
         return $pdf->download("acta-notas-{$grupo->codigo_grupo}.pdf");
     }
 
+    public function actaNotasExcel(Request $request, Grupo $grupo)
+    {
+        $this->authorize('view', $grupo);
+
+        $grupo->load(['inscripciones.estudiante', 'inscripciones.evaluaciones']);
+
+        $this->registrar($request, 'ACTA_NOTAS_EXCEL', ['grupo_id' => $grupo->id]);
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\ActaNotasExport($grupo),
+            "acta-notas-{$grupo->codigo_grupo}.xlsx"
+        );
+    }
+
     public function constanciaAsistencia(Request $request, Grupo $grupo)
     {
         $this->authorize('view', $grupo);

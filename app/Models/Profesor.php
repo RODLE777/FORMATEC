@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Profesor extends Model
 {
-     protected $table = 'profesores';   
+    protected $table = 'profesores';
+
+    use HasFactory;
+
     protected $fillable = [
         'user_id', 'nombres', 'apellidos', 'dui', 'telefono',
         'correo', 'especialidad', 'activo',

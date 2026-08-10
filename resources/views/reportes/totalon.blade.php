@@ -22,6 +22,10 @@
            class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
             Descargar PDF
         </a>
+        <a href="{{ route('totalon.excel', ['anio' => $anio, 'periodo' => $periodo]) }}"
+           class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+            Descargar Excel
+        </a>
     </div>
 
     <p class="mb-3 text-sm text-slate-500">

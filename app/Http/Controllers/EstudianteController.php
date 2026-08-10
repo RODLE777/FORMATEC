@@ -19,8 +19,6 @@ class EstudianteController extends Controller
                     ->orWhere('codigo_formatec', 'like', "%{$request->q}%");
             }));
 
-        // PROFESOR solo ve estudiantes inscritos en SUS grupos — filtro a
-        // nivel de query, no solo de UI (seccion 5 del prompt maestro).
         if ($user->esProfesor() && $user->profesor) {
             $query->whereHas('inscripciones.grupo', fn ($q) => $q->where('profesor_id', $user->profesor->id));
         }
@@ -34,13 +32,10 @@ class EstudianteController extends Controller
     {
         $this->authorize('create', Estudiante::class);
 
-        // Se crea un modelo vacío para pasarlo a la vista
         $estudiante = new Estudiante();
+        $catalogos = $this->catalogos();
 
-        return view('estudiantes.create', array_merge(
-            ['estudiante' => $estudiante],
-            $this->catalogos()
-        ));
+        return view('estudiantes.create', array_merge(['estudiante' => $estudiante], $catalogos));
     }
 
     public function store(Request $request)
@@ -50,15 +45,19 @@ class EstudianteController extends Controller
         $data = $this->validated($request);
         $esMenor = $this->esMenorEdad($data['fecha_nacimiento']);
 
+        if ($request->hasFile('foto')) {
+            $data['foto'] = $request->file('foto')->store('estudiantes', 'public');
+        }
+
         $estudiante = DB::transaction(function () use ($data, $request, $esMenor) {
-            // 1. Crear el estudiante (el campo codigo_formatec se deja como NULL)
             $estudiante = Estudiante::create($data);
 
-            // 2. Generar el código manualmente después de la inserción
-            $estudiante->codigo_formatec = 'FTEC-' . str_pad($estudiante->id, 6, '0', STR_PAD_LEFT);
-            $estudiante->save();
+            //  Generar código personalizado si está vacío
+            if (is_null($estudiante->codigo_formatec)) {
+                $estudiante->codigo_formatec = 'FTEC-' . str_pad($estudiante->id, 6, '0', STR_PAD_LEFT);
+                $estudiante->save();
+            }
 
-            // 3. Si es menor de edad, guardar el encargado
             if ($esMenor) {
                 $estudiante->encargadoMenor()->create([
                     'nombre_completo' => $request->encargado_nombre_completo,
@@ -100,6 +99,13 @@ class EstudianteController extends Controller
         $data = $this->validated($request, $estudiante->id);
         $esMenor = $this->esMenorEdad($data['fecha_nacimiento']);
 
+        if ($request->hasFile('foto')) {
+            if ($estudiante->foto) {
+                \Storage::disk('public')->delete($estudiante->foto);
+            }
+            $data['foto'] = $request->file('foto')->store('estudiantes', 'public');
+        }
+
         DB::transaction(function () use ($estudiante, $data, $request, $esMenor) {
             $estudiante->update($data);
 
@@ -122,7 +128,7 @@ class EstudianteController extends Controller
         $this->authorize('delete', $estudiante);
 
         if ($estudiante->inscripciones()->exists()) {
-            return back()->with('error', 'No se puede eliminar: el estudiante tiene inscripciones. Desactivalo en su lugar.');
+            return back()->with('error', 'No se puede eliminar: el estudiante tiene inscripciones. Desactívalo en su lugar.');
         }
 
         $estudiante->delete();
@@ -144,7 +150,7 @@ class EstudianteController extends Controller
 
     private function validated(Request $request, ?int $ignoreId = null): array
     {
-        $duiRule = 'nullable|string|max:15|unique:estudiantes,dui'.($ignoreId ? ",{$ignoreId}" : '');
+        $duiRule = 'nullable|string|max:15|unique:estudiantes,dui' . ($ignoreId ? ",{$ignoreId}" : '');
 
         $data = $request->validate([
             'nombres' => 'required|string|max:150',
@@ -165,10 +171,10 @@ class EstudianteController extends Controller
             'nivel_estudio' => 'nullable|string|max:100',
             'enfermedades' => 'nullable|string',
             'usuario_certiport' => 'nullable|string|max:100',
+            'foto' => 'nullable|image|max:2048',
             'activo' => 'boolean',
         ]);
 
-        // Si el estudiante resulta menor de edad, el encargado es obligatorio.
         if ($this->esMenorEdad($data['fecha_nacimiento'])) {
             $request->validate([
                 'encargado_nombre_completo' => 'required|string|max:200',
