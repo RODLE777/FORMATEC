@@ -21,31 +21,44 @@
     </p>
 
     <table>
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Estudiante</th>
-                @for ($n = 1; $n <= $grupo->numero_evaluaciones; $n++)
-                    <th class="center">Eval. {{ $n }}</th>
-                @endfor
-                <th class="center">Nota final</th>
-                <th class="center">Resultado</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach ($grupo->inscripciones as $i => $inscripcion)
-                <tr>
-                    <td>{{ $i + 1 }}</td>
-                    <td>{{ $inscripcion->estudiante->nombre_completo }}</td>
-                    @for ($n = 1; $n <= $grupo->numero_evaluaciones; $n++)
-                        <td class="center">{{ $inscripcion->evaluaciones->firstWhere('numero_evaluacion', $n)->nota ?? '—' }}</td>
-                    @endfor
-                    <td class="center"><strong>{{ $inscripcion->nota_final ?? '—' }}</strong></td>
-                    <td class="center">{{ $inscripcion->resultado_final }}</td>
-                </tr>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Estudiante</th>
+            @foreach ($config as $ev)
+                <th class="center">{{ $ev['nombre'] }}</th>
             @endforeach
-        </tbody>
-    </table>
+            <th class="center">Nota final</th>
+            <th class="center">Resultado</th>
+        </tr>
+        <tr>
+            <th></th>
+            <th style="text-align:right; font-style:italic;">Peso</th>
+            @foreach ($config as $ev)
+                <th class="center" style="font-style:italic;">{{ number_format($ev['porcentaje'], 2) }}%</th>
+            @endforeach
+            <th class="center" style="font-style:italic;">100.00%</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach ($grupo->inscripciones as $i => $inscripcion)
+            <tr>
+                <td>{{ $i + 1 }}</td>
+                <td>{{ $inscripcion->estudiante->nombre_completo }}</td>
+                @foreach ($config as $idx => $ev)
+                    @php
+                        $numero = $idx + 1;
+                        $nota = $inscripcion->evaluaciones->firstWhere('numero_evaluacion', $numero)?->nota;
+                    @endphp
+                    <td class="center">{{ $nota ?? '—' }}</td>
+                @endforeach
+                <td class="center"><strong>{{ $inscripcion->nota_final ?? '—' }}</strong></td>
+                <td class="center">{{ $inscripcion->resultado_final }}</td>
+            </tr>
+        @endforeach
+    </tbody>
+</table>
 
     <p class="footer">Generado el {{ now()->format('d/m/Y H:i') }} — FORMATEC, Cuscatlan Sur.</p>
 </body>

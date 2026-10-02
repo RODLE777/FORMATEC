@@ -8,10 +8,9 @@ use Illuminate\Support\Carbon;
 
 class Estudiante extends Model
 {
-
-protected $table = 'estudiantes';
-
     use HasFactory;
+
+    protected $table = 'estudiantes';
 
     protected $fillable = [
         'nombres', 'apellidos', 'sexo', 'fecha_nacimiento', 'dui', 'nit',
@@ -21,14 +20,24 @@ protected $table = 'estudiantes';
         'usuario_certiport', 'foto', 'activo',
     ];
 
-    // codigo_formatec NUNCA se asigna desde el formulario: lo genera el
-    // trigger trg_estudiante_codigo al insertar 
+    // codigo_formatec NUNCA se asigna desde el formulario: lo genera
+    // automáticamente el evento created() de abajo.
     protected function casts(): array
     {
         return [
             'fecha_nacimiento' => 'date',
-            'activo' => 'boolean',
+            'activo'           => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (Estudiante $estudiante) {
+            if (is_null($estudiante->codigo_formatec)) {
+                $estudiante->codigo_formatec = 'FTEC-' . str_pad((string) $estudiante->id, 6, '0', STR_PAD_LEFT);
+                $estudiante->saveQuietly();
+            }
+        });
     }
 
     public function departamento()
@@ -62,11 +71,6 @@ protected $table = 'estudiantes';
             ->withPivot(['id', 'estado', 'resultado_final', 'nota_final', 'fecha_inscripcion']);
     }
 
-    /**
-     * Edad calculada al vuelo. MySQL no permite CURDATE() en columnas
-     * generadas, por eso se resuelve aqui (o via vista_estudiantes) y
-     * nunca como columna fisica.
-     */
     public function getEdadAttribute(): int
     {
         return Carbon::parse($this->fecha_nacimiento)->age;

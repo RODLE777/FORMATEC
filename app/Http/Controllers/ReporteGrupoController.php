@@ -14,18 +14,21 @@ use Illuminate\Http\Request;
  */
 class ReporteGrupoController extends Controller
 {
-    public function actaNotas(Request $request, Grupo $grupo)
-    {
-        $this->authorize('view', $grupo);
+   public function actaNotas(Request $request, Grupo $grupo)
+{
+    $this->authorize('view', $grupo);
 
-        $grupo->load(['curso', 'profesor', 'inscripciones.estudiante', 'inscripciones.evaluaciones']);
+    $grupo->load(['curso', 'profesor', 'inscripciones.estudiante', 'inscripciones.evaluaciones']);
 
-        $pdf = Pdf::loadView('reportes.acta-notas', compact('grupo'))->setPaper('letter', 'landscape');
+    $config = $grupo->configEvaluaciones();
 
-        $this->registrar($request, 'ACTA_NOTAS', ['grupo_id' => $grupo->id]);
+    $pdf = Pdf::loadView('reportes.acta-notas', compact('grupo', 'config'))
+        ->setPaper('letter', 'landscape');
 
-        return $pdf->download("acta-notas-{$grupo->codigo_grupo}.pdf");
-    }
+    $this->registrar($request, 'ACTA_NOTAS', ['grupo_id' => $grupo->id]);
+
+    return $pdf->download("acta-notas-{$grupo->codigo_grupo}.pdf");
+}
 
     public function actaNotasExcel(Request $request, Grupo $grupo)
     {

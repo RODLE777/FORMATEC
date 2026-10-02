@@ -30,13 +30,14 @@
         
         <div class="mt-6 border-b border-slate-200">
             <nav class="-mb-px flex gap-6 text-sm">
-                @foreach ([
-                    'informacion' => 'Informacion',
-                    'estudiantes' => 'Estudiantes ('.$grupo->inscripciones->count().')',
-                    'sesiones' => 'Sesiones ('.$grupo->sesiones->count().')',
-                    'asistencia' => 'Asistencia',
-                    'reportes' => 'Reportes',
-                ] as $key => $label)
+               @foreach ([
+    'informacion'         => 'Informacion',
+    'estudiantes'         => 'Estudiantes ('.$grupo->inscripciones->count().')',
+    'sesiones'            => 'Sesiones ('.$grupo->sesiones->count().')',
+    'asistencia'          => 'Asistencia',
+    'config-evaluaciones' => 'Config. evaluaciones',
+    'reportes'            => 'Reportes',
+] as $key => $label)
                     <button @click="tab = '{{ $key }}'"
                             :class="tab === '{{ $key }}' ? 'border-slate-900 text-slate-900 font-semibold' : 'border-transparent text-slate-500 hover:text-slate-700'"
                             class="border-b-2 pb-3 pt-1">
@@ -269,7 +270,53 @@
             </div>
             <p class="mt-2 text-xs text-slate-400">Para registrar asistencia de una sesion especifica, entra a la pestaña Sesiones y usa "Pasar lista".</p>
         </div>
+{{-- Config. evaluaciones: solo ROOT/ADMIN editan, todos ven --}}
+<div x-show="tab === 'config-evaluaciones'" class="mt-6">
+    <div class="rounded-xl border border-slate-200 bg-white p-5">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="font-semibold text-slate-900">Configuración de evaluaciones</h3>
+                <p class="text-sm text-slate-500">
+                    Porcentajes globales del grupo. Las notas sin registrar cuentan como 0.
+                </p>
+            </div>
+            @if (in_array(auth()->user()->rol, ['ROOT', 'ADMINISTRADOR']))
+                <a href="{{ route('grupos.config-evaluaciones', $grupo) }}"
+                   class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
+                    Editar configuración
+                </a>
+            @endif
+        </div>
 
+        <table class="min-w-full divide-y divide-slate-200 text-sm">
+            <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                <tr>
+                    <th class="px-4 py-2">#</th>
+                    <th class="px-4 py-2">Nombre</th>
+                    <th class="px-4 py-2 text-right">Porcentaje</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+                @php $configActual = $grupo->configEvaluaciones(); $suma = 0; @endphp
+                @foreach ($configActual as $i => $ev)
+                    @php $suma += $ev['porcentaje']; @endphp
+                    <tr>
+                        <td class="px-4 py-2 text-slate-500">{{ $i + 1 }}</td>
+                        <td class="px-4 py-2 text-slate-800">{{ $ev['nombre'] }}</td>
+                        <td class="px-4 py-2 text-right font-mono">{{ number_format($ev['porcentaje'], 2) }}%</td>
+                    </tr>
+                @endforeach
+                <tr class="bg-slate-50 font-semibold">
+                    <td colspan="2" class="px-4 py-2 text-right">Suma:</td>
+                    <td class="px-4 py-2 text-right font-mono
+                        {{ abs($suma - 100) < 0.01 ? 'text-emerald-700' : 'text-red-700' }}">
+                        {{ number_format($suma, 2) }}%
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
         {{-- Reportes: nacen desde el grupo, no desde un modulo aislado --}}
         <div x-show="tab === 'reportes'" class="mt-6 grid gap-4 sm:grid-cols-2">
             <a href="{{ route('grupos.reportes.notas', $grupo) }}"

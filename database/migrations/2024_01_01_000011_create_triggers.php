@@ -12,18 +12,7 @@ return new class extends Migration
             return;
         }
 
-        DB::unprepared(<<<'SQL'
-            CREATE TRIGGER trg_estudiante_codigo
-            AFTER INSERT ON estudiantes
-            FOR EACH ROW
-            BEGIN
-                IF NEW.codigo_formatec IS NULL THEN
-                    UPDATE estudiantes
-                    SET codigo_formatec = CONCAT('FTEC-', LPAD(NEW.id, 6, '0'))
-                    WHERE id = NEW.id;
-                END IF;
-            END
-        SQL);
+
 
         DB::unprepared(<<<'SQL'
             CREATE TRIGGER trg_evaluacion_after_insert

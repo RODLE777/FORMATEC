@@ -32,6 +32,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::resource('estudiantes', \App\Http\Controllers\EstudianteController::class);
     Route::resource('grupos', \App\Http\Controllers\GrupoController::class);
+    Route::get('/grupos/{grupo}/config-evaluaciones', [\App\Http\Controllers\GrupoController::class, 'configEvaluaciones'])
+    ->name('grupos.config-evaluaciones');
+//aqui va lo de las evaluaciones
+Route::put('/grupos/{grupo}/config-evaluaciones', [\App\Http\Controllers\GrupoController::class, 'guardarConfigEvaluaciones'])
+    ->name('grupos.config-evaluaciones.guardar');
 
     Route::get('/inscripciones/crear', [\App\Http\Controllers\InscripcionController::class, 'create'])->name('inscripciones.create');
     Route::post('/inscripciones', [\App\Http\Controllers\InscripcionController::class, 'store'])->name('inscripciones.store');
@@ -69,6 +74,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/backups/{backup}/restaurar', [\App\Http\Controllers\BackupController::class, 'restoreForm'])->name('backups.restore-form');
         Route::post('/backups/{backup}/restaurar', [\App\Http\Controllers\BackupController::class, 'restore'])->name('backups.restore');
     });
+});
+
+Route::prefix('kiosco')->name('kiosco.')->middleware('throttle:30,1')->group(function () {
+    Route::get('/', [\App\Http\Controllers\KioscoController::class, 'index'])->name('index');
+    Route::post('/registrar', [\App\Http\Controllers\KioscoController::class, 'registrar'])->name('registrar');
+    Route::get('/exito/{estudiante}', [\App\Http\Controllers\KioscoController::class, 'exito'])->name('exito');
 });
 
 require __DIR__.'/auth.php';

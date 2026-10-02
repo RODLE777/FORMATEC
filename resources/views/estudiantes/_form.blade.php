@@ -1,11 +1,10 @@
 @php
     $estudiante = $estudiante ?? null;
-    $encargado = $estudiante?->encargadoMenor;
-    $edadInicial = $estudiante ? \Illuminate\Support\Carbon::parse($estudiante->fecha_nacimiento)->age : null;
+    $encargado  = $estudiante?->encargadoMenor;
 @endphp
 
 <div x-data="{
-        fechaNacimiento: '{{ old('fecha_nacimiento', $estudiante->fecha_nacimiento?->format('Y-m-d') ?? '') }}',
+        fechaNacimiento: '{{ old('fecha_nacimiento', $estudiante?->fecha_nacimiento?->format('Y-m-d') ?? '') }}',
         get esMenor() {
             if (!this.fechaNacimiento) return false;
             const hoy = new Date();
@@ -17,116 +16,75 @@
         }
     }" class="space-y-6">
 
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-            <label class="block text-sm font-medium text-slate-700">Nombres</label>
+            <label class="block text-sm font-medium text-slate-700">Nombres *</label>
             <input type="text" name="nombres" value="{{ old('nombres', $estudiante->nombres ?? '') }}" required
                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             @error('nombres') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </div>
         <div>
-            <label class="block text-sm font-medium text-slate-700">Apellidos</label>
+            <label class="block text-sm font-medium text-slate-700">Apellidos *</label>
             <input type="text" name="apellidos" value="{{ old('apellidos', $estudiante->apellidos ?? '') }}" required
                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             @error('apellidos') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </div>
     </div>
 
-    <div>
-        <label class="block text-sm font-medium text-slate-700">Fotografia</label>
-        @if ($estudiante?->foto)
-            <img src="{{ $estudiante->foto_url }}" class="mt-2 h-20 w-20 rounded-lg object-cover border border-slate-200">
-        @endif
-        <input type="file" name="foto" accept="image/*"
-               class="mt-1 block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm">
-        @error('foto') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-    </div>
-
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-            <label class="block text-sm font-medium text-slate-700">Sexo</label>
+            <label class="block text-sm font-medium text-slate-700">Sexo *</label>
             <select name="sexo" required class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <option value="">— Seleccione —</option>
                 <option value="MASCULINO" {{ old('sexo', $estudiante->sexo ?? '') === 'MASCULINO' ? 'selected' : '' }}>Masculino</option>
-                <option value="FEMENINO" {{ old('sexo', $estudiante->sexo ?? '') === 'FEMENINO' ? 'selected' : '' }}>Femenino</option>
+                <option value="FEMENINO"  {{ old('sexo', $estudiante->sexo ?? '') === 'FEMENINO'  ? 'selected' : '' }}>Femenino</option>
             </select>
+            @error('sexo') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </div>
         <div>
-            <label class="block text-sm font-medium text-slate-700">Fecha de nacimiento</label>
+            <label class="block text-sm font-medium text-slate-700">Fecha de nacimiento *</label>
             <input type="date" name="fecha_nacimiento" x-model="fechaNacimiento" required
+                   value="{{ old('fecha_nacimiento', $estudiante?->fecha_nacimiento?->format('Y-m-d') ?? '') }}"
                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             @error('fecha_nacimiento') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-            <label class="block text-sm font-medium text-slate-700">DUI</label>
+            <label class="block text-sm font-medium text-slate-700">
+                DUI <span x-show="!esMenor">*</span>
+                <span x-show="esMenor" class="text-xs text-slate-400">(opcional para menores)</span>
+            </label>
             <input type="text" name="dui" value="{{ old('dui', $estudiante->dui ?? '') }}"
+                   :required="!esMenor"
                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             @error('dui') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </div>
         <div>
-            <label class="block text-sm font-medium text-slate-700">NIT</label>
-            <input type="text" name="nit" value="{{ old('nit', $estudiante->nit ?? '') }}"
-                   class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-        </div>
-    </div>
-
-    <div class="grid grid-cols-2 gap-4">
-        <div>
             <label class="block text-sm font-medium text-slate-700">Correo</label>
             <input type="email" name="correo" value="{{ old('correo', $estudiante->correo ?? '') }}"
                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            @error('correo') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+            <label class="block text-sm font-medium text-slate-700">Teléfono celular</label>
+            <input type="text" name="telefono_celular" value="{{ old('telefono_celular', $estudiante->telefono_celular ?? '') }}"
+                   class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
         </div>
         <div>
-            <label class="block text-sm font-medium text-slate-700">Telefono celular</label>
-            <input type="text" name="telefono_celular" value="{{ old('telefono_celular', $estudiante->telefono_celular ?? '') }}"
+            <label class="block text-sm font-medium text-slate-700">Dirección</label>
+            <input type="text" name="direccion" value="{{ old('direccion', $estudiante->direccion ?? '') }}"
                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
         </div>
     </div>
 
-    <div>
-        <label class="block text-sm font-medium text-slate-700">Direccion</label>
-        <input type="text" name="direccion" value="{{ old('direccion', $estudiante->direccion ?? '') }}"
-               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-    </div>
-
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-            <label class="block text-sm font-medium text-slate-700">Departamento</label>
-            <select name="departamento_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                @foreach ($departamentos as $d)
-                    <option value="{{ $d->id }}" {{ old('departamento_id', $estudiante->departamento_id ?? '') == $d->id ? 'selected' : '' }}>{{ $d->nombre }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-slate-700">Municipio</label>
-            <select name="municipio_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                @foreach ($departamentos->flatMap->municipios as $m)
-                    <option value="{{ $m->id }}" {{ old('municipio_id', $estudiante->municipio_id ?? '') == $m->id ? 'selected' : '' }}>{{ $m->nombre }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-slate-700">Distrito</label>
-            <select name="distrito_id" class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                @foreach ($departamentos->flatMap->municipios->flatMap->distritos as $di)
-                    <option value="{{ $di->id }}" {{ old('distrito_id', $estudiante->distrito_id ?? '') == $di->id ? 'selected' : '' }}>{{ $di->nombre }}</option>
-                @endforeach
-            </select>
-        </div>
-    </div>
-
-    <div>
-        <label class="block text-sm font-medium text-slate-700">Comunidad / caserio / colonia</label>
-        <input type="text" name="comunidad" value="{{ old('comunidad', $estudiante->comunidad ?? '') }}"
-               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-    </div>
-
-    <div class="grid grid-cols-2 gap-4">
-        <div>
-            <label class="block text-sm font-medium text-slate-700">Profesion / oficio</label>
+            <label class="block text-sm font-medium text-slate-700">Profesión / oficio</label>
             <input type="text" name="profesion_oficio" value="{{ old('profesion_oficio', $estudiante->profesion_oficio ?? '') }}"
                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
         </div>
@@ -137,34 +95,18 @@
         </div>
     </div>
 
-    <div>
-        <label class="block text-sm font-medium text-slate-700">Enfermedades / condiciones a considerar</label>
-        <textarea name="enfermedades" rows="2"
-                  class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">{{ old('enfermedades', $estudiante->enfermedades ?? '') }}</textarea>
-    </div>
-
-    <div>
-        <label class="block text-sm font-medium text-slate-700">Usuario Certiport (si aplica)</label>
-        <input type="text" name="usuario_certiport" value="{{ old('usuario_certiport', $estudiante->usuario_certiport ?? '') }}"
-               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-    </div>
-
-    <label class="flex items-center gap-2 text-sm text-slate-700">
-        <input type="hidden" name="activo" value="0">
-        <input type="checkbox" name="activo" value="1" {{ old('activo', $estudiante->activo ?? true) ? 'checked' : '' }}>
-        Estudiante activo
-    </label>
-    {{-- Datos del encargado: solo obligatorio/visible si el estudiante es menor de edad --}}
+    {{-- Datos del encargado: solo visibles/obligatorios si es menor --}}
     <div x-show="esMenor" x-cloak class="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3">
         <p class="text-sm font-semibold text-amber-800">Datos del encargado (obligatorio para menores de edad)</p>
         <div>
-            <label class="block text-sm font-medium text-slate-700">Nombre completo del encargado</label>
+            <label class="block text-sm font-medium text-slate-700">Nombre completo del encargado *</label>
             <input type="text" name="encargado_nombre_completo"
                    value="{{ old('encargado_nombre_completo', $encargado->nombre_completo ?? '') }}"
+                   :required="esMenor"
                    class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             @error('encargado_nombre_completo') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium text-slate-700">Parentesco</label>
                 <input type="text" name="encargado_parentesco"
@@ -172,7 +114,7 @@
                        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700">Telefono</label>
+                <label class="block text-sm font-medium text-slate-700">Teléfono</label>
                 <input type="text" name="encargado_telefono"
                        value="{{ old('encargado_telefono', $encargado->telefono ?? '') }}"
                        class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
@@ -180,7 +122,13 @@
         </div>
     </div>
 
+    <label class="flex items-center gap-2 text-sm text-slate-700">
+        <input type="hidden" name="activo" value="0">
+        <input type="checkbox" name="activo" value="1" {{ old('activo', $estudiante->activo ?? true) ? 'checked' : '' }}>
+        Estudiante activo
+    </label>
+
     <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-        {{ $estudiante ? 'Guardar cambios' : 'Registrar estudiante' }}
+        {{ $estudiante && $estudiante->exists ? 'Guardar cambios' : 'Registrar estudiante' }}
     </button>
 </div>

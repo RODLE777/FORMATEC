@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Estudiante;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class EstudianteController extends Controller
 {
@@ -12,7 +14,7 @@ class EstudianteController extends Controller
     {
         $user = $request->user();
 
-        $query = Estudiante::with(['departamento', 'municipio', 'distrito'])
+        $query = Estudiante::query()
             ->when($request->q, fn ($q) => $q->where(function ($qq) use ($request) {
                 $qq->where('nombres', 'like', "%{$request->q}%")
                     ->orWhere('apellidos', 'like', "%{$request->q}%")
@@ -33,9 +35,8 @@ class EstudianteController extends Controller
         $this->authorize('create', Estudiante::class);
 
         $estudiante = new Estudiante();
-        $catalogos = $this->catalogos();
 
-        return view('estudiantes.create', array_merge(['estudiante' => $estudiante], $catalogos));
+        return view('estudiantes.create', compact('estudiante'));
     }
 
     public function store(Request $request)
@@ -43,26 +44,16 @@ class EstudianteController extends Controller
         $this->authorize('create', Estudiante::class);
 
         $data = $this->validated($request);
-        $esMenor = $this->esMenorEdad($data['fecha_nacimiento']);
-
-        if ($request->hasFile('foto')) {
-            $data['foto'] = $request->file('foto')->store('estudiantes', 'public');
-        }
+        $esMenor = Carbon::parse($data['fecha_nacimiento'])->age < 18;
 
         $estudiante = DB::transaction(function () use ($data, $request, $esMenor) {
             $estudiante = Estudiante::create($data);
 
-            //  Generar código personalizado si está vacío
-            if (is_null($estudiante->codigo_formatec)) {
-                $estudiante->codigo_formatec = 'FTEC-' . str_pad($estudiante->id, 6, '0', STR_PAD_LEFT);
-                $estudiante->save();
-            }
-
             if ($esMenor) {
                 $estudiante->encargadoMenor()->create([
                     'nombre_completo' => $request->encargado_nombre_completo,
-                    'parentesco' => $request->encargado_parentesco,
-                    'telefono' => $request->encargado_telefono,
+                    'parentesco'      => $request->encargado_parentesco,
+                    'telefono'        => $request->encargado_telefono,
                 ]);
             }
 
@@ -77,8 +68,7 @@ class EstudianteController extends Controller
     {
         $this->authorize('view', $estudiante);
 
-        $estudiante->load(['departamento', 'municipio', 'distrito', 'encargadoMenor',
-            'inscripciones.grupo.curso', 'inscripciones.evaluaciones']);
+        $estudiante->load(['encargadoMenor', 'inscripciones.grupo.curso', 'inscripciones.evaluaciones']);
 
         return view('estudiantes.show', compact('estudiante'));
     }
@@ -89,7 +79,7 @@ class EstudianteController extends Controller
 
         $estudiante->load('encargadoMenor');
 
-        return view('estudiantes.edit', array_merge(['estudiante' => $estudiante], $this->catalogos()));
+        return view('estudiantes.edit', compact('estudiante'));
     }
 
     public function update(Request $request, Estudiante $estudiante)
@@ -97,14 +87,7 @@ class EstudianteController extends Controller
         $this->authorize('update', $estudiante);
 
         $data = $this->validated($request, $estudiante->id);
-        $esMenor = $this->esMenorEdad($data['fecha_nacimiento']);
-
-        if ($request->hasFile('foto')) {
-            if ($estudiante->foto) {
-                \Storage::disk('public')->delete($estudiante->foto);
-            }
-            $data['foto'] = $request->file('foto')->store('estudiantes', 'public');
-        }
+        $esMenor = Carbon::parse($data['fecha_nacimiento'])->age < 18;
 
         DB::transaction(function () use ($estudiante, $data, $request, $esMenor) {
             $estudiante->update($data);
@@ -112,15 +95,16 @@ class EstudianteController extends Controller
             if ($esMenor) {
                 $estudiante->encargadoMenor()->updateOrCreate([], [
                     'nombre_completo' => $request->encargado_nombre_completo,
-                    'parentesco' => $request->encargado_parentesco,
-                    'telefono' => $request->encargado_telefono,
+                    'parentesco'      => $request->encargado_parentesco,
+                    'telefono'        => $request->encargado_telefono,
                 ]);
             } else {
                 $estudiante->encargadoMenor()->delete();
             }
         });
 
-        return redirect()->route('estudiantes.show', $estudiante)->with('status', 'Ficha actualizada correctamente.');
+        return redirect()->route('estudiantes.show', $estudiante)
+            ->with('status', 'Ficha actualizada correctamente.');
     }
 
     public function destroy(Estudiante $estudiante)
@@ -136,50 +120,41 @@ class EstudianteController extends Controller
         return redirect()->route('estudiantes.index')->with('status', 'Estudiante eliminado.');
     }
 
-    private function catalogos(): array
-    {
-        return [
-            'departamentos' => \App\Models\Departamento::with('municipios.distritos')->orderBy('nombre')->get(),
-        ];
-    }
-
-    private function esMenorEdad(string $fechaNacimiento): bool
-    {
-        return \Illuminate\Support\Carbon::parse($fechaNacimiento)->age < 18;
-    }
-
     private function validated(Request $request, ?int $ignoreId = null): array
     {
-        $duiRule = 'nullable|string|max:15|unique:estudiantes,dui' . ($ignoreId ? ",{$ignoreId}" : '');
-
+        // 1) Campos base (foto, NIT, ubicación y Certiport ya no se piden)
         $data = $request->validate([
-            'nombres' => 'required|string|max:150',
-            'apellidos' => 'required|string|max:150',
-            'sexo' => 'required|in:MASCULINO,FEMENINO',
+            'nombres'          => 'required|string|max:150',
+            'apellidos'        => 'required|string|max:150',
+            'sexo'             => 'required|in:MASCULINO,FEMENINO',
             'fecha_nacimiento' => 'required|date|before:today',
-            'dui' => $duiRule,
-            'nit' => 'nullable|string|max:20',
-            'correo' => 'nullable|email|max:150',
-            'telefono_fijo' => 'nullable|string|max:20',
+            'correo'           => 'nullable|email|max:150',
             'telefono_celular' => 'nullable|string|max:20',
-            'direccion' => 'nullable|string|max:255',
-            'departamento_id' => 'nullable|exists:departamentos,id',
-            'municipio_id' => 'nullable|exists:municipios,id',
-            'distrito_id' => 'nullable|exists:distritos,id',
-            'comunidad' => 'nullable|string|max:150',
+            'direccion'        => 'nullable|string|max:255',
             'profesion_oficio' => 'nullable|string|max:150',
-            'nivel_estudio' => 'nullable|string|max:100',
-            'enfermedades' => 'nullable|string',
-            'usuario_certiport' => 'nullable|string|max:100',
-            'foto' => 'nullable|image|max:2048',
-            'activo' => 'boolean',
+            'nivel_estudio'    => 'nullable|string|max:100',
+            'activo'           => 'boolean',
         ]);
 
-        if ($this->esMenorEdad($data['fecha_nacimiento'])) {
+        // 2) DUI: obligatorio si es mayor de edad, opcional si es menor
+        $esMenor = Carbon::parse($data['fecha_nacimiento'])->age < 18;
+
+        $request->validate([
+            'dui' => [
+                $esMenor ? 'nullable' : 'required',
+                'string',
+                'max:15',
+                Rule::unique('estudiantes', 'dui')->ignore($ignoreId),
+            ],
+        ]);
+        $data['dui'] = $request->input('dui');
+
+        // 3) Datos del encargado (obligatorios solo si es menor)
+        if ($esMenor) {
             $request->validate([
                 'encargado_nombre_completo' => 'required|string|max:200',
-                'encargado_parentesco' => 'nullable|string|max:50',
-                'encargado_telefono' => 'nullable|string|max:20',
+                'encargado_parentesco'      => 'nullable|string|max:50',
+                'encargado_telefono'        => 'nullable|string|max:20',
             ]);
         }
 
