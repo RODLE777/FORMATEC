@@ -8,19 +8,15 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 use Symfony\Component\Process\Process;
 
-/**
- * Backups de base de datos: EXCLUSIVOS de ROOT (seccion 5 del prompt
- * maestro). Usa mysqldump del sistema -no una libreria PHP- porque es
- * lo mas confiable para un volcado completo con triggers/vistas
- * incluidos. Requiere que `mysqldump` este disponible en el PATH del
- * servidor donde corre Laravel.
- */
 class BackupController extends Controller
 {
+    // Rutas de Laragon configuradas
+    private $pathMysqldump = 'C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin\mysqldump.exe';
+    private $pathMysql = 'C:\laragon\bin\mysql\mysql-8.4.3-winx64\bin\mysql.exe';
+
     public function index()
     {
         $backups = BackupModel::with('usuario')->latest('created_at')->paginate(15);
-
         return view('backups.index', compact('backups'));
     }
 
@@ -35,16 +31,32 @@ class BackupController extends Controller
 
         $config = config('database.connections.mysql');
 
-        $process = new Process([
-            'mysqldump',
-            '-h', $config['host'],
+        $comando = [
+            $this->pathMysqldump,
+            '-h', '127.0.0.1', // Forzamos IP para evitar error de resolución
             '-P', (string) $config['port'],
             '-u', $config['username'],
-            '--routines', // incluye los triggers
-            $config['database'],
-        ]);
-        $process->setEnv(['MYSQL_PWD' => $config['password']]);
+            '--protocol=TCP', // Forzamos TCP para evitar error de socket (10106)
+            '--routines'
+        ];
+
+        if (!empty($config['password'])) {
+            $comando[] = '--password=' . $config['password'];
+        }
+
+        $comando[] = $config['database'];
+
+        $process = new Process($comando);
+        $process->setWorkingDirectory(base_path());
         $process->setTimeout(300);
+
+        // Pasamos las variables de entorno críticas de Windows para evitar el error 10106
+        $process->setEnv([
+            'SystemRoot' => getenv('SystemRoot'),
+            'PATH'       => getenv('PATH'),
+            'TEMP'       => getenv('TEMP'),
+            'TMP'        => getenv('TMP'),
+        ]);
 
         try {
             $process->mustRun();
@@ -68,14 +80,13 @@ class BackupController extends Controller
                 'estado' => 'ERROR',
             ]);
 
-            return back()->with('error', 'No se pudo generar el backup. Verifica que mysqldump este instalado en el servidor. Detalle: '.$e->getMessage());
+            return back()->with('error', 'Error al generar backup: '.$e->getMessage());
         }
     }
 
     public function download(BackupModel $backup)
     {
         abort_unless($backup->ruta && Storage::disk('local')->exists($backup->ruta), 404);
-
         return Storage::disk('local')->download($backup->ruta, $backup->nombre_archivo);
     }
 
@@ -84,12 +95,6 @@ class BackupController extends Controller
         return view('backups.restaurar', compact('backup'));
     }
 
-    /**
-     * Restaura la base de datos desde un backup. Operacion irreversible
-     * -por eso pide escribir "RESTAURAR" literal- y antes de tocar nada
-     * genera un backup de seguridad (tipo PRE_RESTAURACION) por si algo
-     * sale mal.
-     */
     public function restore(Request $request, BackupModel $backup)
     {
         $request->validate([
@@ -103,25 +108,38 @@ class BackupController extends Controller
         $config = config('database.connections.mysql');
         $rutaCompleta = storage_path('app/'.$backup->ruta);
 
-        // Backup de seguridad ANTES de restaurar, por si hay que revertir.
         $this->generarBackup($request->user()->id, 'PRE_RESTAURACION');
 
-        $process = new Process([
-            'mysql',
-            '-h', $config['host'],
+        $comando = [
+            $this->pathMysql,
+            '-h', '127.0.0.1',
             '-P', (string) $config['port'],
             '-u', $config['username'],
-            $config['database'],
-        ]);
-        $process->setEnv(['MYSQL_PWD' => $config['password']]);
+            '--protocol=TCP'
+        ];
+
+        if (!empty($config['password'])) {
+            $comando[] = '--password=' . $config['password'];
+        }
+
+        $comando[] = $config['database'];
+
+        $process = new Process($comando);
+        $process->setWorkingDirectory(base_path());
         $process->setInput(file_get_contents($rutaCompleta));
         $process->setTimeout(300);
 
+        $process->setEnv([
+            'SystemRoot' => getenv('SystemRoot'),
+            'PATH'       => getenv('PATH'),
+            'TEMP'       => getenv('TEMP'),
+            'TMP'        => getenv('TMP'),
+        ]);
+
         try {
             $process->mustRun();
-
             return redirect()->route('backups.index')
-                ->with('status', "Base de datos restaurada desde {$backup->nombre_archivo}. Se genero un backup de seguridad antes de restaurar.");
+                ->with('status', "Base de datos restaurada desde {$backup->nombre_archivo}.");
         } catch (ProcessFailedException $e) {
             return back()->with('error', 'No se pudo restaurar el backup. Detalle: '.$e->getMessage());
         }
@@ -138,11 +156,23 @@ class BackupController extends Controller
 
         $config = config('database.connections.mysql');
 
-        $process = new Process([
-            'mysqldump', '-h', $config['host'], '-P', (string) $config['port'],
-            '-u', $config['username'], '--routines', $config['database'],
-        ]);
-        $process->setEnv(['MYSQL_PWD' => $config['password']]);
+        $comando = [
+            $this->pathMysqldump,
+            '-h', '127.0.0.1',
+            '-P', (string) $config['port'],
+            '-u', $config['username'],
+            '--protocol=TCP',
+            '--routines'
+        ];
+
+        if (!empty($config['password'])) {
+            $comando[] = '--password=' . $config['password'];
+        }
+
+        $comando[] = $config['database'];
+
+        $process = new Process($comando);
+        $process->setWorkingDirectory(base_path());
         $process->setTimeout(300);
         $process->run();
 

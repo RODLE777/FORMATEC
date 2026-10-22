@@ -15,13 +15,10 @@ class Estudiante extends Model
     protected $fillable = [
         'nombres', 'apellidos', 'sexo', 'fecha_nacimiento', 'dui', 'nit',
         'correo', 'telefono_fijo', 'telefono_celular', 'direccion',
-        'departamento_id', 'municipio_id', 'distrito_id', 'comunidad',
-        'profesion_oficio', 'nivel_estudio', 'enfermedades',
-        'usuario_certiport', 'foto', 'activo',
+        'comunidad', 'profesion_oficio', 'nivel_estudio', 'enfermedades',
+        'usuario_certiport', 'activo', // 'foto' eliminada
     ];
 
-    // codigo_formatec NUNCA se asigna desde el formulario: lo genera
-    // automáticamente el evento created() de abajo.
     protected function casts(): array
     {
         return [
@@ -40,20 +37,7 @@ class Estudiante extends Model
         });
     }
 
-    public function departamento()
-    {
-        return $this->belongsTo(Departamento::class);
-    }
-
-    public function municipio()
-    {
-        return $this->belongsTo(Municipio::class);
-    }
-
-    public function distrito()
-    {
-        return $this->belongsTo(Distrito::class);
-    }
+    // Relaciones geográficas eliminadas
 
     public function encargadoMenor()
     {
@@ -86,8 +70,5 @@ class Estudiante extends Model
         return trim("{$this->nombres} {$this->apellidos}");
     }
 
-    public function getFotoUrlAttribute(): ?string
-    {
-        return $this->foto ? \Storage::disk('public')->url($this->foto) : null;
-    }
+    // Método getFotoUrlAttribute() eliminado
 }

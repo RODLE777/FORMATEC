@@ -14,20 +14,45 @@ class EstudianteController extends Controller
     {
         $user = $request->user();
 
+        // ✅ Relaciones geográficas eliminadas
         $query = Estudiante::query()
+            // 1. Buscador de texto normal
             ->when($request->q, fn ($q) => $q->where(function ($qq) use ($request) {
                 $qq->where('nombres', 'like', "%{$request->q}%")
                     ->orWhere('apellidos', 'like', "%{$request->q}%")
                     ->orWhere('codigo_formatec', 'like', "%{$request->q}%");
-            }));
+            }))
+            // 2. Filtro: Solo mayores de 18 años
+            ->when($request->filtro_mayor_18, function ($q) {
+                $fechaCorte = \Illuminate\Support\Carbon::now()->subYears(18)->format('Y-m-d');
+                $q->where('fecha_nacimiento', '<=', $fechaCorte);
+            })
+            // 3. Filtro: Curso y/o Solo Graduados
+            ->when($request->curso_id || $request->solo_graduados, function ($q) use ($request) {
+                $q->whereHas('inscripciones', function ($qq) use ($request) {
+                    
+                    if ($request->solo_graduados) {
+                        $qq->where('resultado_final', 'GRADUADO');
+                    }
+                    
+                    if ($request->curso_id) {
+                        $qq->whereHas('grupo', function ($qg) use ($request) {
+                            $qg->where('curso_id', $request->curso_id);
+                        });
+                    }
+                });
+            });
 
+        // Si es profesor, solo ve a sus estudiantes
         if ($user->esProfesor() && $user->profesor) {
             $query->whereHas('inscripciones.grupo', fn ($q) => $q->where('profesor_id', $user->profesor->id));
         }
 
         $estudiantes = $query->orderBy('apellidos')->paginate(15)->withQueryString();
+        
+        $cursos = \App\Models\Curso::orderBy('nombre')->get();
 
-        return view('estudiantes.index', compact('estudiantes'));
+        return view('estudiantes.index', compact('estudiantes', 'cursos'));
     }
 
     public function create()
@@ -122,7 +147,6 @@ class EstudianteController extends Controller
 
     private function validated(Request $request, ?int $ignoreId = null): array
     {
-        // 1) Campos base (foto, NIT, ubicación y Certiport ya no se piden)
         $data = $request->validate([
             'nombres'          => 'required|string|max:150',
             'apellidos'        => 'required|string|max:150',
@@ -136,7 +160,6 @@ class EstudianteController extends Controller
             'activo'           => 'boolean',
         ]);
 
-        // 2) DUI: obligatorio si es mayor de edad, opcional si es menor
         $esMenor = Carbon::parse($data['fecha_nacimiento'])->age < 18;
 
         $request->validate([
@@ -149,7 +172,6 @@ class EstudianteController extends Controller
         ]);
         $data['dui'] = $request->input('dui');
 
-        // 3) Datos del encargado (obligatorios solo si es menor)
         if ($esMenor) {
             $request->validate([
                 'encargado_nombre_completo' => 'required|string|max:200',
