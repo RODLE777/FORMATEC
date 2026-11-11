@@ -17,7 +17,7 @@
 <div class="grid grid-cols-2 gap-4">
     <div>
         <label class="block text-sm font-medium text-slate-700">
-            Contrasena {{ $usuario ? '(dejar vacio para no cambiar)' : '' }}
+            Contrasena {{ $usuario ? '()' : '' }}
         </label>
         <input type="password" name="password" {{ $usuario ? '' : 'required' }}
                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">

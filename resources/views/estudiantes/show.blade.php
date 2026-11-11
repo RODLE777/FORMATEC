@@ -44,7 +44,7 @@
                 <p><span class="text-slate-500">Correo:</span> {{ $estudiante->correo ?? '—' }}</p>
                 <p><span class="text-slate-500">Celular:</span> {{ $estudiante->telefono_celular ?? '—' }}</p>
                 <p><span class="text-slate-500">Direccion:</span> {{ $estudiante->direccion ?? '—' }}</p>
-                <p><span class="text-slate-500">Distrito:</span> {{ $estudiante->distrito->nombre ?? '—' }}, {{ $estudiante->municipio->nombre ?? '' }}</p>
+                
             </div>
 
             @if ($estudiante->es_menor_edad)
